@@ -1,4 +1,4 @@
-// Project 1 - Toxic Substance Diagnosis and Treatment
+// Project 2 - Checkers Game
 // Course: CS 5346 - Advanced Artificial Intelligence
 // Authors: Aishwarya Baskaran, Philip Fitzgerald, Prajna Saha
 
