@@ -10,6 +10,7 @@
 #include <sstream>
 #include <string>
 #include <chrono>
+#include <assert.h>
 
 using namespace std::chrono;
 using std::getline;
@@ -25,7 +26,7 @@ using std::min;
 using std::list;
 using std::toupper;
 
-
+int totalNodes=0;
 
 //*****************************************************BOARD*****************************************************//
 class jump
@@ -559,16 +560,16 @@ void game::playTheGame()
 //prompts user to play again or not
 //calls playTheGame if answer is yes
 void game::endMessage()
-{
+{cout << "Total Number of nodes generated: " <<totalNodes<<endl;
     gameOver = true;
     cout << "The game is over." << endl;
     cout << endl;
     if (currentB->getTurn() == 'r')
         cout << "Player 1 wins." << endl;
     else cout << "Player 2 wins." << endl;
-    cout << "Do you want to play again? (Y/N):" << endl;
-    char answer;
-    cin >> answer;
+    
+    char answer = 'n';
+
     bool loop = true;
     while (loop)
     {
@@ -579,11 +580,6 @@ void game::endMessage()
         }
         else if (tolower(answer) == 'n')
             loop = false;
-        else
-        {
-            cout << "Do you want to play again? (Y/N):" << endl;
-            cin >> answer;
-        }
     }
 }
 
@@ -989,7 +985,7 @@ void board::whoComputer()
     }
     if (board::isComputer[0] == true || board::isComputer[1] == true)
     {
-            timeLimit = 4;
+        timeLimit = 4;
     }
 }
 
@@ -1113,9 +1109,13 @@ int board::printMoves()
         convertCommand((*it)->command);
         cout << endl;
         count = count + 1;
+        
     }
     cout << "Number of nodes generated: " << count << endl;
     cout << endl;
+    totalNodes+=count;
+    cout << "Total Number of nodes generated: " <<totalNodes<<endl;
+    
     
     return count;
 }
@@ -1583,5 +1583,7 @@ int main()
     cout << "Execution Time: "
     << duration.count() << " seconds" << endl;
     
-
+    
+    
 }
+
