@@ -26,7 +26,11 @@ using std::min;
 using std::list;
 using std::toupper;
 
-int totalNodes=0;
+int totalNodes1 = 0;
+int nodesExpanded1 = 0;
+int totalNodes2 = 0;
+int nodesExpanded2 = 0;
+int player = 1;
 
 //*****************************************************BOARD*****************************************************//
 class jump
@@ -560,7 +564,12 @@ void game::playTheGame()
 //prompts user to play again or not
 //calls playTheGame if answer is yes
 void game::endMessage()
-{cout << "Total Number of nodes generated: " <<totalNodes<<endl;
+{
+    /*cout << "Total Number of nodes generated for player 1: " << totalNodes1 <<endl;
+    cout << "Total Number of nodes generated for player 2: " << totalNodes2 <<endl;
+    cout << "Total Number of nodes expanded for player 1: " << totalNodes1 <<endl;
+    cout << "Total Number of nodes expanded for player 2: " << totalNodes2 <<endl;*/
+    
     gameOver = true;
     cout << "The game is over." << endl;
     cout << endl;
@@ -592,6 +601,7 @@ void game::computerTurn()
     //moves for current board are already created in printGame function
     //game over scenario also taken care of in printGame
     currentB->printMoves();
+    
     cout << "The computer will make a move." << endl;
     
     //if there's only one move to make, make it immediately
@@ -1091,6 +1101,7 @@ void board::printBoard()
     
     //output a blank line before outputting moves
     cout << endl;
+    
 }
 
 //decides whose turn it is to move based on color
@@ -1111,11 +1122,27 @@ int board::printMoves()
         count = count + 1;
         
     }
-    cout << "Number of nodes generated: " << count << endl;
-    cout << endl;
-    totalNodes+=count;
-    cout << "Total Number of nodes generated: " <<totalNodes<<endl;
+    if (player == 1)
+    {
+        cout << "Number of nodes generated: " << count << endl;
+        cout << endl;
+        totalNodes1 += count;
+        cout << "Total Number of nodes generated for player 1: " << totalNodes1 << endl;
+        nodesExpanded1++;
+        cout << "Total Number of nodes expanded for player 1: " << nodesExpanded1 << endl << endl;
+        player = 2;
+    }
     
+    else if (player == 2)
+    {
+        cout << "Number of nodes generated: " << count << endl;
+        cout << endl;
+        totalNodes2 += count;
+        cout << "Total Number of nodes generated for player 2: " << totalNodes2 <<endl;
+        nodesExpanded2++;
+        cout << "Total Number of nodes expanded for player 2: " << nodesExpanded2 <<endl << endl;
+        player = 1;
+    }
     
     return count;
 }
@@ -1578,12 +1605,17 @@ int main()
     game g;
     g.playTheGame();
     
+    cout << "Total Number of nodes generated for player 1: " << totalNodes1 << endl;
+    cout << "Total Number of nodes expanded for player 1: " << nodesExpanded1 << endl << endl;
+    
+    cout << "Total Number of nodes generated for player 2: " << totalNodes2 << endl;
+    cout << "Total Number of nodes expanded for player 2: " << nodesExpanded2 << endl << endl;
+    
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<seconds>(stop - start);
     cout << "Execution Time: "
     << duration.count() << " seconds" << endl;
     
-    
-    
 }
+
 
