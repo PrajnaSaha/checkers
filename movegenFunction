@@ -1,0 +1,84 @@
+///////
+//// I created this function for generating moves for minMaxAb.
+/////It is the same function for the ab search, except
+/////for line 32 calls min/maxab rather than ab. 
+
+void game::computerTurnminMAXAB()
+{
+    //moves for current board are already created in printGame function
+    //game over scenario also taken care of in printGame
+    currentB->printMoves();
+    cout << "The computer will make a move." << endl;
+    
+    //if there's only one move to make, make it immediately
+    //this may occur for jump moves
+    if (currentB->mlist.size() == 1)
+    {
+        bestM = currentB->mlist.front();
+        time(&startTime);
+        time(&endTime);
+        cdepth = 0;
+    }
+    else
+    {
+        //start the timer for the search
+        time(&startTime);
+        for (int i = 1; i != maxIterDepth; ++i)
+        {
+            //keep track of amount of time searched up to a specific depth
+            time(&startTimeD);
+            
+            //changes maxdepth
+            maxdepth = i;
+            
+            //calls alpha beta search up to depth maxdepth, with alpha = -infinity and beta = infinity
+            minMAXAB(currentB, i, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+            time(&endTimeD);
+            
+            //if the search up to a specific depth took more than half the time limit
+            //terminate the search by breaking out of the loop
+            if (difftime(endTimeD, startTimeD) >= ((board::timeLimit)/2))
+            {
+                time(&endTime);
+                timeUp = true;
+                break;
+            }
+            
+            //break out of loop if time's up
+            //if time isn't up, either the remaining game space has been explored
+            //or search to maxIterDepth was completed; sets bestM = tempBestM
+            if (timeUp)
+                break;
+            else
+                bestM = tempBestM;
+            
+            //test if alpha beta is done searching remaining game space, no need to go deeper/repeat
+            if (reachedEnd)
+                break;
+        }
+    }
+    assert(bestM != NULL);
+    
+    //output appropriate message for computer's search results
+    outputMessage();
+}
+
+
+/////////
+//// below is the protoype i created related to the above function. I placed it below the 
+/// line ->     void computerTurn(); 
+///// which is the protoype for the ab move generating function
+    void computerTurnminMAXAB();
+    
+ ///// below is the minMaxab function protoype which has a function call in the top most function of this file . I placed this below alpha beta fucntion protoype
+    int minMAXAB(sptr<board>&, int, int, int); 
+    
+  ////////// below is the minMaxab function. 
+  //IT is nonrelated code that i made in order for the 
+  // function protype and call to work in the above code
+  int game::minMAXAB(sptr<board>& b, int depth, int alpha, int beta)
+{
+  int x=0;
+  return x;
+}
+
