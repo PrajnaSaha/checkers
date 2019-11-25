@@ -1050,6 +1050,8 @@ class game
     int minimaxAB(sptr<board>& b, int depth, int player, int useThresh, int passThresh)
     {
         {
+            sptr<board> newB(new board(*b));
+        
             if (depth != maxdepth && b->testTerminal())
             {
                 endReached = true;
@@ -1059,6 +1061,10 @@ class game
                 else return std::numeric_limits<int>::min();
             }
             endReached = false;
+            
+            deep_enough(newB, depth);
+            
+            moveGen(newB, player);
             
             if (depth == 0)
                 return b->assess();
