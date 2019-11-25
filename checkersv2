@@ -735,7 +735,35 @@ class board
         return a1 + a2 + b + c + d + e;
     }
     
+/*
+int evaluateThree()
+{
+ int c = 0;
+    for (int i = 0; i != 8; ++i)
+        for (int j = 0; j != 4; ++j)
+        {
+            if (arr[i][j] == 'b')
+            {
+                c += 1;
+            }
+            else if (arr[i][j] == 'r')
+            {
+                c -= 1;
+            }
+            else if (arr[i][j] == 'B')
+            {
+                c += 1;
+            }
+            else if (arr[i][j] == 'R')
+            {
+                c -= 1;
+            }
+        }
+    c *= 10000;
+    return  c; 
 
+}
+*/
     void startup()
     {
         reset();
