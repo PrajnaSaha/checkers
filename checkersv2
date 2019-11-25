@@ -50,7 +50,7 @@ class jump
     int xend;
     int yend;
     int key;
-
+    
     jump(char jpingp, char piece, int xs, int ys, int xc, int yc, int xe, int ye, jump* p, int k):
     prev(p), jumpPiece(jpingp), noMovesNext(true), numberOfTimes(0), c(piece), xs(xs), ys(ys),
     x(xc), y(yc), xend(xe), yend(ye), key(k){}
@@ -137,7 +137,7 @@ class board
         return false;
     }
     
-
+    
     bool movesAvailable()
     {
         if (jumpsAvailable())
@@ -147,7 +147,7 @@ class board
         return false;
     }
     
-
+    
     void makeKing(const int& x, const int& y)
     {
         if (x == 0 && arr[x][y] == 'r')
@@ -156,7 +156,7 @@ class board
             arr[x][y] = 'B';
     }
     
-
+    
     bool isValidPos(int i, int j)
     {
         if (i >= 0 && i < 8 && j >= 0 && j < 4)
@@ -164,7 +164,7 @@ class board
         else return false;
     }
     
-
+    
     void reset()
     {
         color = 'b';
@@ -179,7 +179,7 @@ class board
                 arr[i][j] = 'r';
     }
     
-
+    
     void modifyBoard(ifstream& fin)
     {
         string line;
@@ -201,7 +201,7 @@ class board
         assert(color == 'b' || color == 'r');
     }
     
-
+    
     void remove_carriage_return(std::string&);
     
     int createkey(int, int, int, int, int, int);
@@ -347,11 +347,11 @@ class board
             return true;
         return false;
     }
-
+    
     
     void checkNeighbors(int& x, int& y)
     {
-
+        
         if (tolower(arr[x][y]) == 'b' || arr[x][y] == 'R')
         {
             if (x % 2 == 0)
@@ -365,7 +365,7 @@ class board
                 createMove(x, y, x+1, y-1);
             }
         }
-
+        
         if (tolower(arr[x][y]) == 'r' || arr[x][y] == 'B')
         {
             if (x % 2 == 0)
@@ -503,7 +503,7 @@ class board
     }
     
     static void whoComputer();
-
+    
     static int timeLimit;
     
     std::list<move*> mlist;
@@ -580,7 +580,7 @@ class board
         
     }
     
-
+    
     int printMoves()
     {
         int count = 0;
@@ -617,7 +617,7 @@ class board
         return count;
     }
     
-
+    
     void makeMove(move* m)
     {
         if (!m->jpoints.empty())
@@ -650,7 +650,7 @@ class board
         arr[m->xi][m->yi] = m->movePiece;
     }
     
-
+    
     int cornerPiece(char losing, char winning)
     {
         int c = 0;
@@ -777,39 +777,39 @@ class board
     
     int evaluateTwo()
     {
-         int int a1 = 0, a2 = 0, b = 0, c = 0, d = 0;
-         if (c > 0 && a2 >= -8)
-
-                d -= cornerPiece('r', 'b');
-
-          else if (c < 0 && a1 <= 8)
-
-                d += cornerPiece('b', 'r');
-
-          a1 *= 100000000;
-
-          a2 *= 100000000;
-
-           b *= 1000000;
-
-           c *= 10000;
-
-           d *= 100;
-
-           int e = rand() % 100;
-
-           if (color == 'r')
-
-           e = -e;
-
-           return a1 + a2 + b + c + d + e;
-
+        int a1 = 0, a2 = 0, b = 0, c = 0, d = 0;
+        if (c > 0 && a2 >= -8)
+            
+            d -= cornerPiece('r', 'b');
+        
+        else if (c < 0 && a1 <= 8)
+            
+            d += cornerPiece('b', 'r');
+        
+        a1 *= 100000000;
+        
+        a2 *= 100000000;
+        
+        b *= 1000000;
+        
+        c *= 10000;
+        
+        d *= 100;
+        
+        int e = rand() % 100;
+        
+        if (color == 'r')
+            
+            e = -e;
+        
+        return a1 + a2 + b + c + d + e;
+        
     }
     
-
+    
     int evaluateThree()
     {
-     int c = 0;
+        int c = 0;
         for (int i = 0; i != 8; ++i)
             for (int j = 0; j != 4; ++j)
             {
@@ -831,8 +831,8 @@ class board
                 }
             }
         c *= 10000;
-        return  c; 
-
+        return  c;
+        
     }
     
     void startup()
@@ -909,7 +909,7 @@ class game
             currentB->inputCommand();
     }
     
-
+    
     void outputMessage()
     {
         currentB->makeMove(bestM);
@@ -925,7 +925,7 @@ class game
         endReached = false;
     }
     
-
+    
     void computerTurn()
     {
         currentB->printMoves();
@@ -944,7 +944,7 @@ class game
             time(&startTime);
             for (int i = 1; i != maxDepth; ++i)
             {
-
+                
                 time(&startTimeD);
                 maxdepth = i;
                 
@@ -957,12 +957,12 @@ class game
                     timeUp = true;
                     break;
                 }
-
+                
                 if (timeUp)
                     break;
                 else
                     bestM = tempBestM;
-
+                
                 if (endReached)
                     break;
             }
@@ -971,10 +971,10 @@ class game
         moves++;
         outputMessage();
     }
-
-  void computerTurnMMAXAB()
+    
+    void computerTurnMMAXAB()
     {
-      int player=0;
+        int players;
         currentB->printMoves();
         
         cout << "The computer will make a move." << endl;
@@ -991,11 +991,11 @@ class game
             time(&startTime);
             for (int i = 1; i != maxDepth; ++i)
             {
-
+                
                 time(&startTimeD);
                 maxdepth = i;
                 
-  minimaxAB(currentB, cdepth, moves , std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
+                minimaxAB(currentB, cdepth, moves , std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
                 time(&endTimeD);
                 
                 if (difftime(endTimeD, startTimeD) >= ((board::timeLimit)/2))
@@ -1004,16 +1004,17 @@ class game
                     timeUp = true;
                     break;
                 }
-
+                
                 if (timeUp)
                     break;
                 else
                     bestM = tempBestM;
-
+                
                 if (endReached)
                     break;
             }
         }
+        players = 0;
         assert(bestM != NULL);
         moves++;
         outputMessage();
@@ -1134,13 +1135,13 @@ class game
             for (; iter != b->mlist.end(); ++iter)
             {
                 time(&endTime);
-
+                
                 if (difftime(endTime, startTime) >= (board::timeLimit - 1))
                 {
                     timeUp = true;
                     break;
                 }
-
+                
                 b->makeMove(*iter);
                 sptr<board> newB(new board(*b));
                 int value = alphabeta(newB, depth-1, alpha, min(localbeta, beta));
@@ -1153,18 +1154,18 @@ class game
                     if (depth == maxdepth)
                         tempBestM = (*iter);
                 }
-
+                
                 if (alpha >= beta && depth < maxdepth)
                     return alpha;
             }
-
+            
             if (!timeUp && depth == maxdepth)
                 cdepth = depth;
-
+            
             return alpha;
         }
         
-
+        
         else
         {
             for (; iter != b->mlist.end(); ++iter)
@@ -1194,12 +1195,12 @@ class game
             
             if (!timeUp && depth == maxdepth)
                 cdepth = depth;
-
+            
             return beta;
         }
     }
     
-
+    
     void endMessage()
     {
         gameOver = true;
@@ -1228,7 +1229,7 @@ public:
     game(): currentB(sptr<board>(new board())), bestM(NULL), tempBestM(NULL), maxdepth(0),
     cdepth(0), timeUp(false), gameOver(false), endReached(false), startTime(0), endTime(0),
     startTimeD(0), endTimeD(0) {}
-
+    
     void playTheGame()
     {
         gameOver = false;
@@ -1396,7 +1397,7 @@ int main()
     printf("===========================================================================\n");
     
     auto start = high_resolution_clock::now();
-
+    
     game g;
     g.playTheGame();
     
@@ -1408,7 +1409,7 @@ int main()
     
     cout << "Total Number of nodes generated for player 2: " << totalNodes2 << endl;
     cout << "Total Number of nodes expanded for player 2: " << nodesExpanded2 << endl << endl;
-
+    
     cout << "Execution Time: "
     << duration.count() << " seconds" << endl << endl;
     
