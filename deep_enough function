@@ -1,0 +1,26 @@
+void game::deep_enough(sptr<board>& b, int depth)    // takes 2 parameters: position and depth
+{
+     for (int i = 1; i != maxIterDepth; ++i)
+        {
+            time(&startTimeD); 
+            maxdepth = i;
+        }
+     if (maxdepth == 0)
+        list<move*>::iterator iter = b->mlist.begin();
+
+     else if(maxdepth != maxdepth && b->testTerminal())
+        {
+            endReached = true;
+            cdepth = maxdepth;
+            if (b->getTurn() == 'r')
+                return std::numeric_limits<int>::max();
+            else return std::numeric_limits<int>::min();
+        }
+
+        endReached = false;
+        
+     if (!timeUp && depth == maxdepth)
+            cdepth = maxdepth;
+}
+     
+   
