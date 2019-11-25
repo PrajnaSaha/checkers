@@ -1,0 +1,30 @@
+int evaluateTwo()
+{
+     int int a1 = 0, a2 = 0, b = 0, c = 0, d = 0;
+     if (c > 0 && a2 >= -8)
+
+            d -= cornerPiece('r', 'b');
+
+      else if (c < 0 && a1 <= 8)
+
+            d += cornerPiece('b', 'r');
+
+      a1 *= 100000000;
+
+      a2 *= 100000000;
+
+       b *= 1000000;
+
+       c *= 10000;
+
+       d *= 100;
+
+       int e = rand() % 100;
+
+       if (color == 'r')
+
+       e = -e;
+
+       return a1 + a2 + b + c + d + e;
+
+}
