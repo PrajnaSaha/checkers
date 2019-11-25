@@ -1,0 +1,1271 @@
+// Project 2 - Checkers Game
+// Course: CS 5346 - Advanced Artificial Intelligence
+// Authors: Aishwarya Baskaran, Philip Fitzgerald, Prajna Saha
+
+/* ------------------------------------------------------------------------------------ */
+
+#include <iostream>
+#include <string>
+#include <chrono>
+#include <fstream>
+#include <sstream>
+#include <list>
+#include <assert.h>
+
+using namespace std::chrono;
+
+using std::max;
+using std::ifstream;
+using std::getline;
+using std::cout;
+using std::list;
+using std::string;
+using std::toupper;
+using std::cin;
+using std::stringstream;
+using std::endl;
+using std::list;
+using std::min;
+
+int totalNodes1 = 0;
+int nodesExpanded1 = 0;
+int totalNodes2 = 0;
+int nodesExpanded2 = 0;
+int player = 1;
+bool algoAB = 0;
+bool algoMiniMax = 0;
+
+class jump
+{
+    jump* prev;
+    char jumpPiece;
+    bool noMovesNext;
+    int numberOfTimes;
+    char c;
+    int xs;
+    int ys;
+    int x;
+    int y;
+    int xend;
+    int yend;
+    int key;
+
+    jump(char jpingp, char piece, int xs, int ys, int xc, int yc, int xe, int ye, jump* p, int k):
+    prev(p), jumpPiece(jpingp), noMovesNext(true), numberOfTimes(0), c(piece), xs(xs), ys(ys),
+    x(xc), y(yc), xend(xe), yend(ye), key(k){}
+    
+    friend class move;
+    friend class board;
+};
+
+class move
+{
+    char movePiece;
+    int xi;
+    int yi;
+    int xf;
+    int yf;
+    std::string command;
+    std::list<jump*> jpoints;
+    
+    move(char c, int xs, int ys, int xe, int ye): movePiece(c), xi(xs), yi(ys), xf(xe), yf(ye) {}
+    
+    ~move()
+    {
+        for (list<jump*>::iterator it = jpoints.begin(); it != jpoints.end(); ++it)
+        {
+            --(*it)->numberOfTimes;
+            if ((*it)->numberOfTimes == 0)
+                delete (*it);
+        }
+    }
+    
+    friend class board;
+    friend class game;
+};
+
+void printMemoryUsage()
+{
+    int memory1 = totalNodes1 * 5;
+    int memory2 = totalNodes2 * 5;
+    cout << "Memory used by Player 1: " << memory1 << " kB" <<endl;
+    cout << "Memory used by Player 2: " << memory2 << " kB" << endl << endl;
+}
+
+class board
+{
+    char arr[8][4];
+    char color;
+    static bool isComputer[2];
+    
+    static void convertCommand(const std::string&);
+    
+    board()
+    {
+        reset();
+    }
+    
+    ~board()
+    {
+        while (!mlist.empty())
+        {
+            delete mlist.front();
+            mlist.pop_front();
+        }
+    }
+    
+    board(const board& b): color(b.color)
+    {
+        for (int i = 0; i != 8; ++i)
+            for (int j = 0; j != 4; ++j)
+                arr[i][j] = b.arr[i][j];
+    }
+    
+    void turnChange()
+    {
+        if (color == 'r')
+            color = 'b';
+        else
+            color = 'r';
+    }
+    
+    bool testTerminal()
+    {
+        if (!movesAvailable())
+            return true;
+        return false;
+    }
+    
+
+    bool movesAvailable()
+    {
+        if (jumpsAvailable())
+            return true;
+        if (listMoves())
+            return true;
+        return false;
+    }
+    
+
+    void makeKing(const int& x, const int& y)
+    {
+        if (x == 0 && arr[x][y] == 'r')
+            arr[x][y] = 'R';
+        if (x == 7 && arr[x][y] == 'b')
+            arr[x][y] = 'B';
+    }
+    
+
+    bool isValidPos(int i, int j)
+    {
+        if (i >= 0 && i < 8 && j >= 0 && j < 4)
+            return true;
+        else return false;
+    }
+    
+
+    void reset()
+    {
+        color = 'b';
+        for (int i = 0; i != 3; ++i)
+            for (int j = 0; j != 4; ++j)
+                arr[i][j] = 'b';
+        for (int i = 3; i != 5; ++i)
+            for (int j = 0; j != 4; ++j)
+                arr[i][j] = 'e';
+        for (int i = 5; i != 8; ++i)
+            for (int j = 0; j != 4; ++j)
+                arr[i][j] = 'r';
+    }
+    
+
+    void modifyBoard(ifstream& fin)
+    {
+        string line;
+        int count = 0;
+        while (getline(fin, line) && count != 8)
+        {
+            remove_carriage_return(line);
+            stringstream ss(line);
+            for (int jIndex = 0; jIndex != 4; ++jIndex)
+                ss >> arr[count][jIndex];
+            ++count;
+        }
+        
+        getline(fin, line);
+        remove_carriage_return(line);
+        stringstream ss(line);
+        ss >> color;
+        color = tolower(color);
+        assert(color == 'b' || color == 'r');
+    }
+    
+
+    void remove_carriage_return(std::string&);
+    
+    int createkey(int, int, int, int, int, int);
+    
+    int reverse(int i)
+    {
+        int num = 0;
+        while (i/100 > 0)
+        {
+            num += i % 100;
+            num *= 100;
+            i /= 100;
+        }
+        num += i;
+        return num;
+        
+    }
+    
+    void createJump(list<jump*>& jlist, char c, int xs, int ys, int xj, int yj, int xe, int ye, jump* jp)
+    {
+        arr[xs][ys] = 'e';
+        int key = createkey(xs+1, ys+1, xj+1, yj+1, xe+1, ye+1);
+        jump* jcheck = jp;
+        while (jcheck != NULL)
+        {
+            if (key == jcheck->key || key == reverse(jcheck->key))
+                return;
+            jcheck = jcheck->prev;
+        }
+        jump* j = new jump(c, arr[xj][yj], xs, ys, xj, yj, xe, ye, jp, key);
+        if (jp != NULL)
+            jp->noMovesNext = false;
+        jlist.push_front(j);
+        availableJumps(jlist, c, xe, ye, j);
+    }
+    
+    void createJumpMove(list<jump*>& jlist)
+    {
+        if (!jlist.empty())
+        {
+            list<jump*>::const_iterator it = jlist.begin();
+            for (; it != jlist.end(); ++it)
+            {
+                if ((*it)->noMovesNext)
+                {
+                    move* m = new move((*it)->jumpPiece, -1, -1, -1, -1);
+                    jump* jp = (*it);
+                    while (jp != NULL)
+                    {
+                        m->jpoints.push_front(jp);
+                        ++jp->numberOfTimes;
+                        jp = jp->prev;
+                    }
+                    m->xi = m->jpoints.front()->xs;
+                    m->yi = m->jpoints.front()->ys;
+                    convert(m->jpoints.front()->xs, m->jpoints.front()->ys, m->command);
+                    for (list<jump*>::iterator it = m->jpoints.begin(); it != m->jpoints.end(); ++it)
+                    {
+                        convert((*it)->xend, (*it)->yend, m->command);
+                        if ((*it)->noMovesNext)
+                        {
+                            m->xf = (*it)->xend;
+                            m->yf = (*it)->yend;
+                        }
+                    }
+                    
+                    mlist.push_back(m);
+                    m->command += "-1";
+                    undoMove(m);
+                }
+            }
+        }
+    }
+    
+    void availableJumps(list<jump*>& jlist, char c, int x, int y, jump* jp= NULL)
+    {
+        if (tolower(c) == 'b' || c == 'R')
+        {
+            if (x % 2 == 0)
+            {
+                if (conditionForJump(x+1, y, x+2, y-1))
+                    createJump(jlist, c, x, y, x+1, y, x+2, y-1, jp);
+                if (conditionForJump(x+1, y+1, x+2, y+1))
+                    createJump(jlist, c, x, y, x+1, y+1, x+2, y+1, jp);
+            }
+            else
+            {
+                if (conditionForJump(x+1, y-1, x+2, y-1))
+                    createJump(jlist, c, x, y, x+1, y-1, x+2, y-1, jp);
+                if (conditionForJump(x+1, y, x+2, y+1))
+                    createJump(jlist, c, x, y, x+1, y, x+2, y+1, jp);
+            }
+        }
+        if (tolower(c) == 'r' || c == 'B')
+        {
+            if (x % 2 == 0)
+            {
+                if (conditionForJump(x-1, y+1, x-2, y+1))
+                    createJump(jlist, c, x, y, x-1, y+1, x-2, y+1, jp);
+                if (conditionForJump(x-1, y, x-2, y-1))
+                    createJump(jlist, c, x, y, x-1, y, x-2, y-1, jp);
+            }
+            else
+            {
+                if (conditionForJump(x-1, y-1, x-2, y-1))
+                    createJump(jlist, c, x, y, x-1, y-1, x-2, y-1, jp);
+                if (conditionForJump(x-1, y, x-2, y+1))
+                    createJump(jlist, c, x, y, x-1, y, x-2, y+1, jp);
+            }
+        }
+    }
+    
+    bool jumpsAvailable()
+    {
+        while (!mlist.empty())
+        {
+            delete mlist.front();
+            mlist.pop_front();
+        }
+        for (int i = 0; i!= 8; ++i)
+        {
+            for (int j = 0; j != 4; ++j)
+            {
+                if (arr[i][j] == color || arr[i][j] == toupper(color))
+                {
+                    list<jump*> jlist;
+                    availableJumps(jlist, arr[i][j], i, j, NULL);
+                    createJumpMove(jlist);
+                }
+            }
+        }
+        
+        
+        if (mlist.empty())
+            return false;
+        return true;
+    }
+    
+    bool conditionForJump(int xj, int yj, int xe, int ye)
+    {
+        if (isValidPos(xj, yj) && isValidPos(xe, ye) && arr[xj][yj] != 'e' &&
+            arr[xj][yj] != color && arr[xe][ye] == 'e' &&  arr[xj][yj] != std::toupper(color))
+            return true;
+        return false;
+    }
+
+    
+    void checkNeighbors(int& x, int& y)
+    {
+
+        if (tolower(arr[x][y]) == 'b' || arr[x][y] == 'R')
+        {
+            if (x % 2 == 0)
+            {
+                createMove(x, y, x+1, y);
+                createMove(x, y, x+1, y+1);
+            }
+            else
+            {
+                createMove(x, y, x+1, y);
+                createMove(x, y, x+1, y-1);
+            }
+        }
+
+        if (tolower(arr[x][y]) == 'r' || arr[x][y] == 'B')
+        {
+            if (x % 2 == 0)
+            {
+                createMove(x, y, x-1, y);
+                createMove(x, y, x-1, y+1);
+            }
+            else
+            {
+                createMove(x, y, x-1, y);
+                createMove(x, y, x-1, y-1);
+            }
+        }
+    }
+    
+    void createMove(const int& xi,const int& yi, int xf, int yf)
+    {
+        if (isValidPos(xf, yf) && arr[xf][yf] == 'e')
+        {
+            move* m = new move(arr[xi][yi], xi, yi, xf, yf);
+            mlist.push_back(m);
+            convert(xi, yi, m->command);
+            convert(xf, yf, m->command);
+            m->command += "-1";
+        }
+    }
+    
+    bool listMoves()
+    {
+        while (!mlist.empty())
+        {
+            delete mlist.front();
+            mlist.pop_front();
+        }
+        
+        
+        if (color == 'b')
+        {
+            for (int i = 0; i!= 8; ++i)
+                for (int j = 0; j != 4; ++j)
+                    if (arr[i][j] == color || arr[i][j] == toupper(color))
+                        checkNeighbors(i, j);
+        }
+        
+        else
+        {
+            for (int i = 7; i!= -1; --i)
+                for (int j = 0; j != 4; ++j)
+                    if (arr[i][j] == color || arr[i][j] == toupper(color))
+                        checkNeighbors(i, j);
+        }
+        
+        if (mlist.empty())
+            return false;
+        return true;
+    }
+    
+    void convert(const int& x, const int& y, string& s)
+    {
+        char c1 = '0' + x;
+        char c2;
+        if (x % 2 == 0)
+        {
+            c2 = '0' + (2*y + 1);
+        }
+        else
+        {
+            c2 = '0' + (2*y);
+        }
+        s += c1;
+        s += ' ';
+        s += c2;
+        s += ' ';
+    }
+    
+    int convertY(const int& x, const int& y);
+    
+    
+    void printline(const int& i, const string& lineEven, const string& lineOdd)
+    {
+        if (i % 2 == 0)
+        {
+            cout << lineEven << endl;
+            cout << "  " << i << " |     |";
+            for (int j = 0; j != 3; ++j)
+            {
+                cout << "  ";
+                printcolor(arr[i][j]);
+                cout << "  |     |";
+            }
+            cout << "  ";
+            printcolor(arr[i][3]);
+            cout << "  |" << endl;;
+            cout << lineEven << endl;
+        }
+        else
+        {
+            cout << lineOdd << endl;
+            cout << "  " << i << " |";
+            for (int j = 0; j != 3; ++j)
+            {
+                cout << "  ";
+                printcolor(arr[i][j]);
+                cout << "  |     |";
+            }
+            cout << "  ";
+            printcolor(arr[i][3]);
+            cout << "  |     |" << endl;;
+            cout << lineOdd << endl;
+        }
+    }
+    
+    //function for printing a character in a different color
+    //uses escape sequences to print out a color character
+    void printcolor(const char& c)
+    {
+        if (c == 'e')
+            cout << ' ';
+        else if (c == 'r' || c == 'R')
+        {
+            //sets piece as magenta color
+            string default_console = "\033";
+            string color = "\033";
+            cout << color << c;
+            cout << default_console;
+        }
+        else
+        {
+            //c is 'b' or 'B', sets pieces as cyan color
+            string default_console = "\033";
+            string color = "\033";
+            cout << color << c;
+            cout << default_console;
+        }
+    }
+    
+    static void whoComputer();
+
+    static int timeLimit;
+    
+    std::list<move*> mlist;
+    
+    bool isComputerTurn()
+    {
+        if (color == 'b' && isComputer[0])
+            return true;
+        if (color == 'r' && isComputer[1])
+            return true;
+        return false;
+    }
+    
+    void inputCommand()
+    {
+        printMoves();
+        string m;
+        cout << "Enter a sequence of integers indicating a move." << endl;
+        cout << "Each set of two integers represents a position." << endl;
+        cout << "End the sequence with -1." << endl;
+        cout << "For example: 2 3 3 2 -1" << endl;
+        cout <<    "    represents (2,3) -> (3,2)" << endl;
+        cout << "Enter move: ";
+        
+        getline(cin, m);
+        list<move*>::iterator it = mlist.begin();
+        while (it != mlist.end())
+        {
+            if ((*it)->command == m)
+            {
+                cout << "You have chosen the move: ";
+                convertCommand((*it)->command);
+                cout << endl;
+                break;
+            }
+            ++it;
+            if (it == mlist.end())
+            {
+                getline(cin, m);
+                it = mlist.begin();
+            }
+        }
+        makeMove(*it);
+    }
+    
+    void printBoard()
+    {
+        
+        cout << "\nCurrent board:" << endl << endl;
+        
+        int count = 0;
+        cout << "       " << count;
+        ++count;
+        while (count != 8)
+        {
+            cout << "     " << count++;
+        }
+        cout << " " << endl;
+        string lineEven = "    |     |     |     |     |     |     |     |     |";
+        string lineOdd = "    |     |     |     |     |     |     |     |     |";
+        string linebreak = "    -------------------------------------------------";
+        
+        cout << linebreak << endl;
+        for (int i = 0; i != 8; ++i)
+        {
+            printline(i, lineEven, lineOdd);
+            if (i != 7)
+                cout << linebreak << endl;
+        }
+        cout << linebreak << endl;
+        
+        cout << endl;
+        
+    }
+    
+
+    int printMoves()
+    {
+        int count = 0;
+        if (color == 'b')
+            cout << "Player 1's Turn" << endl << endl;
+        else cout << "Player 2's Turn" << endl << endl;
+        
+        cout << "The legal moves are:" << endl;
+        list<move*>::const_iterator it = mlist.begin();
+        for (; it != mlist.end(); ++it)
+        {
+            cout << "Move: ";
+            convertCommand((*it)->command);
+            cout << endl;
+            count = count + 1;
+            
+        }
+        if (player == 1)
+        {
+            cout << "\nNumber of nodes generated: " << count << endl << endl;
+            totalNodes1 += count;
+            nodesExpanded1++;
+            player = 2;
+        }
+        
+        else if (player == 2)
+        {
+            cout << "\nNumber of nodes generated: " << count << endl << endl;
+            totalNodes2 += count;
+            nodesExpanded2++;
+            player = 1;
+        }
+        
+        return count;
+    }
+    
+
+    void makeMove(move* m)
+    {
+        if (!m->jpoints.empty())
+        {
+            list<jump*>::iterator it = m->jpoints.begin();
+            for (; it != m->jpoints.end(); ++it)
+                arr[(*it)->x][(*it)->y] = 'e';
+        }
+        
+        char c = arr[m->xi][m->yi];
+        arr[m->xi][m->yi] = 'e';
+        arr[m->xf][m->yf] = c;
+        
+        makeKing(m->xf, m->yf);
+        turnChange();
+    }
+    
+    void undoMove(move* m)
+    {
+        if (!m->jpoints.empty())
+        {
+            for (list<jump*>::iterator it = m->jpoints.begin(); it != m->jpoints.end(); ++it)
+            {
+                arr[(*it)->xs][(*it)->ys] = 'e';
+                arr[(*it)->x][(*it)->y] = (*it)->c;
+                arr[(*it)->xend][(*it)->yend] = 'e';
+            }
+        }
+        arr[m->xf][m->yf] = 'e';
+        arr[m->xi][m->yi] = m->movePiece;
+    }
+    
+
+    int cornerPiece(char losing, char winning)
+    {
+        int c = 0;
+        if (tolower(arr[0][0]) == losing || tolower(arr[1][0]) == losing)
+        {
+            c += 9;
+            if (tolower(arr[0][0]) == winning)
+                c -= 3;
+            if (tolower(arr[1][0]) == winning)
+                c -= 3;
+            if (tolower(arr[1][1]) == winning)
+                c -= 1;
+            if (tolower(arr[2][0]) == winning)
+                c -= 1;
+            if (tolower(arr[2][1]) == winning)
+                c -= 1;
+            if (tolower(arr[3][1]) == winning)
+                c -= 1;
+        }
+        if (tolower(arr[6][3]) == losing || tolower(arr[7][3]) == losing)
+        {
+            c += 9;
+            if (tolower(arr[4][2]) == winning)
+                c -= 1;
+            if (tolower(arr[5][2]) == winning)
+                c -= 1;
+            if (tolower(arr[5][3]) == winning)
+                c -= 1;
+            if (tolower(arr[6][2]) == winning)
+                c -= 1;
+            if (tolower(arr[6][3]) == winning)
+                c -= 3;
+            if (tolower(arr[7][3]) == winning)
+                c -= 3;
+        }
+        return c;
+    }
+    
+    int assess()
+    {
+        int a1 = 0, a2 = 0, b = 0, c = 0, d = 0;
+        for (int i = 0; i != 8; ++i)
+            for (int j = 0; j != 4; ++j)
+            {
+                if (arr[i][j] == 'b')
+                {
+                    a1 += 2;
+                    if (i == 0)
+                        b += 9;
+                    else b += i;
+                    c += 1;
+                }
+                else if (arr[i][j] == 'r')
+                {
+                    a2 -=2;
+                    if (i == 7)
+                        b -= 9;
+                    else b -= (7 - i);
+                    c -= 1;
+                }
+                else if (arr[i][j] == 'B')
+                {
+                    a1 += 3;
+                    c += 1;
+                }
+                else if (arr[i][j] == 'R')
+                {
+                    a2 -= 3;
+                    c -= 1;
+                }
+            }
+        if (c > 0 && a2 >= -8)
+            d -= cornerPiece('r', 'b');
+        else if (c < 0 && a1 <= 8)
+            d += cornerPiece('b', 'r');
+        a1 *= 100000000;
+        a2 *= 100000000;
+        b *= 1000000;
+        c *= 10000;
+        d *= 100;
+        int e = rand() % 100;
+        if (color == 'r')
+            e = -e;
+        return a1 + a2 + b + c + d + e;
+    }
+    
+
+    void startup()
+    {
+        reset();
+        whoComputer();
+        bool b = true;
+        
+        char c = 'n';
+        while (b)
+        {
+            
+            if (tolower(c) == 'y' || tolower(c) == 'n')
+                b = false;
+        }
+    }
+    
+    char getTurn()
+    {
+        return color;
+    }
+    
+    friend class game;
+    template <class T> friend class sptr;
+};
+
+bool board::isComputer[2];
+
+int board::timeLimit = 0;
+
+inline void board::remove_carriage_return(std::string& line)
+{
+    if (*line.rbegin() == '\r' || *line.rbegin() == '\n')
+        line.erase(line.length() - 1);
+}
+
+
+template <class T>
+class sptr
+{
+private:
+    T* pData;
+public:
+    sptr(T* pVal): pData(pVal) {}
+    ~sptr()    {delete pData;}
+    T& operator*() {return *pData;}
+    T* operator->() {return pData;}
+};
+
+class game
+{
+    sptr<board> currentB;
+    static const int maxDepth;
+    move* bestM;
+    move* tempBestM;
+    int maxdepth;
+    int cdepth;
+    bool timeUp;
+    bool gameOver;
+    bool endReached;
+    time_t startTime;
+    time_t endTime;
+    time_t startTimeD;
+    time_t endTimeD;
+    
+    void printGame()
+    {
+        currentB->printBoard();
+        if (currentB->testTerminal())
+            endMessage();
+        else if (currentB->isComputerTurn())
+            computerTurn();
+        else
+            currentB->inputCommand();
+    }
+    
+
+    void outputMessage()
+    {
+        currentB->makeMove(bestM);
+        cout << "\nCompleted search to depth " << cdepth << "." << endl;
+        if (timeUp && cdepth != maxDepth && !endReached)
+            cout << "\nMove made: ";
+        board::convertCommand(bestM->command);
+        cout << endl;
+        
+        bestM = NULL;
+        tempBestM = NULL;
+        timeUp = false;
+        endReached = false;
+    }
+    
+
+    void computerTurn()
+    {
+        currentB->printMoves();
+        
+        cout << "The computer will make a move." << endl;
+        
+        if (currentB->mlist.size() == 1)
+        {
+            bestM = currentB->mlist.front();
+            time(&startTime);
+            time(&endTime);
+            cdepth = 0;
+        }
+        else
+        {
+            time(&startTime);
+            for (int i = 1; i != maxDepth; ++i)
+            {
+
+                time(&startTimeD);
+                maxdepth = i;
+                
+                alphabeta(currentB, i, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+                time(&endTimeD);
+                
+                if (difftime(endTimeD, startTimeD) >= ((board::timeLimit)/2))
+                {
+                    time(&endTime);
+                    timeUp = true;
+                    break;
+                }
+
+                if (timeUp)
+                    break;
+                else
+                    bestM = tempBestM;
+
+                if (endReached)
+                    break;
+            }
+        }
+        assert(bestM != NULL);
+        
+        outputMessage();
+    }
+
+    int minimaxAB(sptr<board>& b, int depth, int player, int useThresh, int passThresh)
+    {
+        {
+            if (depth != maxdepth && b->testTerminal())
+            {
+                endReached = true;
+                cdepth = maxdepth;
+                if (b->getTurn() == 'r')
+                    return std::numeric_limits<int>::max();
+                else return std::numeric_limits<int>::min();
+            }
+            endReached = false;
+            
+            if (depth == 0)
+                return b->assess();
+            list<move*>::iterator iter = b->mlist.begin();
+            
+            int localuseThresh = std::numeric_limits<int>::min();
+            int localpassThresh = std::numeric_limits<int>::max();
+            
+            if (b->getTurn() == 'b')
+            {
+                for (; iter != b->mlist.end(); ++iter)
+                {
+                    time(&endTime);
+                    
+                    if (difftime(endTime, startTime) >= (board::timeLimit - 1))
+                    {
+                        timeUp = true;
+                        break;
+                    }
+                    
+                    b->makeMove(*iter);
+                    sptr<board> newB(new board(*b));
+                    int value = minimaxAB(newB, depth-1, useThresh, 1, min(localpassThresh, passThresh));
+                    b->undoMove(*iter);
+                    b->turnChange();
+                    
+                    if (value > useThresh)
+                    {
+                        useThresh = value;
+                        if (depth == maxdepth)
+                            tempBestM = (*iter);
+                    }
+                    
+                    if (useThresh >= passThresh && depth < maxdepth)
+                        return useThresh;
+                }
+                
+                if (!timeUp && depth == maxdepth)
+                    cdepth = depth;
+                
+                return useThresh;
+            }
+            
+            
+            else
+            {
+                for (; iter != b->mlist.end(); ++iter)
+                {
+                    time(&endTime);
+                    if (difftime(endTime, startTime) >= (board::timeLimit - 1))
+                    {
+                        timeUp = true;
+                        break;
+                    }
+                    b->makeMove(*iter);
+                    sptr<board> newB(new board(*b));
+                    int value = minimaxAB(newB, depth-1, 1, max(localuseThresh, useThresh), passThresh);
+                    b->undoMove(*iter);
+                    b->turnChange();
+                    
+                    if (value < passThresh)
+                    {
+                        passThresh = value;
+                        if (depth == maxdepth)
+                            tempBestM = (*iter);
+                    }
+                    
+                    if (useThresh >= passThresh)
+                        return passThresh;
+                }
+                
+                if (!timeUp && depth == maxdepth)
+                    cdepth = depth;
+                
+                return passThresh;
+            }
+        }
+    }
+    
+    int alphabeta(sptr<board>& b, int depth, int alpha, int beta)
+    {
+        if (depth != maxdepth && b->testTerminal())
+        {
+            endReached = true;
+            cdepth = maxdepth;
+            if (b->getTurn() == 'r')
+                return std::numeric_limits<int>::max();
+            else return std::numeric_limits<int>::min();
+        }
+        endReached = false;
+        
+        if (depth == 0)
+            return b->assess();
+        list<move*>::iterator iter = b->mlist.begin();
+        
+        int localalpha = std::numeric_limits<int>::min();
+        int localbeta = std::numeric_limits<int>::max();
+        
+        if (b->getTurn() == 'b')
+        {
+            for (; iter != b->mlist.end(); ++iter)
+            {
+                time(&endTime);
+
+                if (difftime(endTime, startTime) >= (board::timeLimit - 1))
+                {
+                    timeUp = true;
+                    break;
+                }
+
+                b->makeMove(*iter);
+                sptr<board> newB(new board(*b));
+                int value = alphabeta(newB, depth-1, alpha, min(localbeta, beta));
+                b->undoMove(*iter);
+                b->turnChange();
+                
+                if (value > alpha)
+                {
+                    alpha = value;
+                    if (depth == maxdepth)
+                        tempBestM = (*iter);
+                }
+
+                if (alpha >= beta && depth < maxdepth)
+                    return alpha;
+            }
+
+            if (!timeUp && depth == maxdepth)
+                cdepth = depth;
+
+            return alpha;
+        }
+        
+
+        else
+        {
+            for (; iter != b->mlist.end(); ++iter)
+            {
+                time(&endTime);
+                if (difftime(endTime, startTime) >= (board::timeLimit - 1))
+                {
+                    timeUp = true;
+                    break;
+                }
+                b->makeMove(*iter);
+                sptr<board> newB(new board(*b));
+                int value = alphabeta(newB, depth-1, max(localalpha, alpha), beta);
+                b->undoMove(*iter);
+                b->turnChange();
+                
+                if (value < beta)
+                {
+                    beta = value;
+                    if (depth == maxdepth)
+                        tempBestM = (*iter);
+                }
+                
+                if (alpha >= beta)
+                    return beta;
+            }
+            
+            if (!timeUp && depth == maxdepth)
+                cdepth = depth;
+
+            return beta;
+        }
+    }
+    
+
+    void endMessage()
+    {
+        gameOver = true;
+        cout << "------------------------------GAME OVER------------------------------" << endl;
+        if (currentB->getTurn() == 'r')
+            cout << "WINNER: Player 1 " << endl << endl;
+        else
+            cout << "WINNER: Player 2 " << endl << endl;
+        
+        char answer = 'n';
+        
+        bool loop = true;
+        while (loop)
+        {
+            if (tolower(answer) == 'y')
+            {
+                loop = false;
+                playTheGame();
+            }
+            else if (tolower(answer) == 'n')
+                loop = false;
+        }
+    }
+    
+public:
+    game(): currentB(sptr<board>(new board())), bestM(NULL), tempBestM(NULL), maxdepth(0),
+    cdepth(0), timeUp(false), gameOver(false), endReached(false), startTime(0), endTime(0),
+    startTimeD(0), endTimeD(0) {}
+
+    void playTheGame()
+    {
+        gameOver = false;
+        currentB->startup();
+        while (!gameOver)
+            printGame();
+    }
+};
+
+const int game::maxDepth = 20;
+
+void board::whoComputer()
+{
+    bool b = true;
+    char c = ' ';
+    int player;
+    while (b)
+    {
+        cout << "\nChoose option for player 1: " << endl;
+        cout << "1: Computer" << endl;
+        cout << "2: Human" << endl;
+        cout << "Enter option 1 or 2 " << endl;
+        cin >> player;
+        while (player != 1 && player != 2)
+        {
+            cout << "Enter option 1 or 2 " << endl;
+            cin >> player;
+        }
+        
+        if (player == 1)
+            c = 'y';
+        else if (player == 2)
+            c = 'n';
+        
+        if (tolower(c) == 'y')
+        {
+            board::isComputer[0] = true;
+            b = false;
+            int algo = 1;
+            cout << "\nChoose algorithm for player 1: " << endl;
+            cout << "1: MINIMAX-A-B" << endl;
+            cout << "2: ALPHA BETA SEARCH" << endl;
+            cout << "Enter option 1 or 2 " << endl;
+            cin >> algo;
+            while (algo != 1 && algo != 2)
+            {
+                cout << "Enter option 1 or 2 " << endl;
+                cin >> algo;
+            }
+            
+            int option;
+            cout << "\nChoose Evaluation Function for Player 1:" << endl;
+            cout << "1: Evaluation function 1" << endl;
+            cout << "2: Evaluation function 2" << endl;
+            cout << "3: Evaluation function 3" << endl;
+            cout << "Enter option 1, 2, or 3" << endl;
+            cin >> option;
+            
+            while (option != 1 && option != 2 && option != 3)
+            {
+                cout << "Enter a valid choice" << endl;
+                cin >> option;
+            }
+        }
+        else if (tolower(c) == 'n')
+        {
+            board::isComputer[0] = false;
+            b = false;
+        }
+    }
+    b = true;
+    c = ' ';
+    while (b)
+    {
+        cout << "\n\nChoose option for player 2: " << endl;
+        cout << "1: Computer" << endl;
+        cout << "2: Human" << endl;
+        cout << "Enter option 1 or 2 " << endl;
+        cin >> player;
+        while (player != 1 && player != 2)
+        {
+            cout << "Enter option 1 or 2 " << endl;
+            cin >> player;
+        }
+        
+        if (player == 1)
+            c = 'y';
+        else if (player == 2)
+            c = 'n';
+        
+        if (tolower(c) == 'y')
+        {
+            board::isComputer[1] = true;
+            b = false;
+            int algo = 1;
+            cout << "\nChoose algorithm for player 2: " << endl;
+            cout << "1: MINIMAX-A-B" << endl;
+            cout << "2: ALPHA BETA SEARCH" << endl;
+            cout << "Enter option 1 or 2 " << endl;
+            cin >> algo;
+            while (algo != 1 && algo != 2)
+            {
+                cout << "Enter option 1 or 2 " << endl;
+                cin >> algo;
+            }
+            
+            int option;
+            cout << "\nChoose Evaluation Function for Player 2:" << endl;
+            cout << "1: Evaluation function 1" << endl;
+            cout << "2: Evaluation function 2" << endl;
+            cout << "3: Evaluation function 3" << endl;
+            cout << "Enter option 1, 2, or 3" << endl;
+            cin >> option;
+            
+            while (option != 1 && option != 2 && option != 3)
+            {
+                cout << "Enter a valid choice" << endl;
+                cin >> option;
+            }
+        }
+        else if (tolower(c) == 'n')
+        {
+            board::isComputer[1] = false;
+            b = false;
+        }
+    }
+    if (board::isComputer[0] == true || board::isComputer[1] == true)
+    {
+        timeLimit = 3;
+    }
+    
+    cout << "\n\nPlayer 1 is b (normal piece) and B (king)" << endl;
+    cout << "Player 2 is r (normal piece) and R (king)" << endl << endl;
+}
+
+
+void board::convertCommand(const string& s)
+{
+    string::const_iterator it = s.begin();
+    cout << "(" << (*it) << ", ";
+    it += 2;
+    cout << (*it) << ") ";
+    it += 2;
+    while (*it != '-')
+    {
+        cout << "-> (" << (*it) << ", ";
+        it += 2;
+        cout << (*it) << ") ";
+        it += 2;
+    }
+}
+
+inline int board::createkey(int xs, int ys, int xj, int yj, int xe, int ye)
+{
+    return ye + xe*10 + yj*100 + xj*1000 + ys*10000 + xs*100000;
+}
+
+
+int main()
+{
+    printf("===========================================================================\n");
+    printf("                                                                           \n");
+    printf("                                 CHECKERS                                  \n");
+    printf("                                                                           \n");
+    printf("===========================================================================\n");
+    
+    auto start = high_resolution_clock::now();
+
+    game g;
+    g.playTheGame();
+    
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<seconds>(stop - start);
+    
+    cout << "Total Number of nodes generated for player 1: " << totalNodes1 << endl;
+    cout << "Total Number of nodes expanded for player 1: " << nodesExpanded1 << endl << endl;
+    
+    cout << "Total Number of nodes generated for player 2: " << totalNodes2 << endl;
+    cout << "Total Number of nodes expanded for player 2: " << nodesExpanded2 << endl << endl;
+
+    cout << "Execution Time: "
+    << duration.count() << " seconds" << endl << endl;
+    
+    printMemoryUsage();
+    
+}
