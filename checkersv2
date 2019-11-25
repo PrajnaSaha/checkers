@@ -939,6 +939,53 @@ class game
         outputMessage();
     }
 
+  void computerTurnMMAXAB()
+    {
+      int player=0;
+        currentB->printMoves();
+        
+        cout << "The computer will make a move." << endl;
+        
+        if (currentB->mlist.size() == 1)
+        {
+            bestM = currentB->mlist.front();
+            time(&startTime);
+            time(&endTime);
+            cdepth = 0;
+        }
+        else
+        {
+            time(&startTime);
+            for (int i = 1; i != maxDepth; ++i)
+            {
+
+                time(&startTimeD);
+                maxdepth = i;
+                
+  minimaxAB(currentB, cdepth, player , std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
+                time(&endTimeD);
+                
+                if (difftime(endTimeD, startTimeD) >= ((board::timeLimit)/2))
+                {
+                    time(&endTime);
+                    timeUp = true;
+                    break;
+                }
+
+                if (timeUp)
+                    break;
+                else
+                    bestM = tempBestM;
+
+                if (endReached)
+                    break;
+            }
+        }
+        assert(bestM != NULL);
+        
+        outputMessage();
+    }
+    
     int minimaxAB(sptr<board>& b, int depth, int player, int useThresh, int passThresh)
     {
         {
