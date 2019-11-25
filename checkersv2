@@ -89,8 +89,8 @@ void printMemoryUsage()
 {
     int memory1 = totalNodes1 * 5;
     int memory2 = totalNodes2 * 5;
-    cout << "Memory used by Player 1: " << memory1 << " kB" <<endl;
-    cout << "Memory used by Player 2: " << memory2 << " kB" << endl << endl;
+    cout << "Memory used by Player 1: " << memory1 << " bytes" <<endl;
+    cout << "Memory used by Player 2: " << memory2 << " bytes" << endl << endl;
 }
 
 class board
@@ -972,7 +972,7 @@ class game
         outputMessage();
     }
     
-    void computerTurnMMAXAB()
+    void moveGen(sptr<board>& b, int player)
     {
         int players;
         currentB->printMoves();
@@ -1018,6 +1018,33 @@ class game
         assert(bestM != NULL);
         moves++;
         outputMessage();
+    }
+    
+    int deep_enough(sptr<board>& b, int depth)
+    {
+        int maxDep = 0;
+        for (int i = 1; i != maxDepth; ++i)
+        {
+            time(&startTimeD);
+            maxdepth = i;
+        }
+        
+        if(maxdepth != maxDep && b->testTerminal())
+        {
+            endReached = true;
+            cdepth = maxdepth;
+            if (b->getTurn() == 'r')
+                return std::numeric_limits<int>::max();
+            else return std::numeric_limits<int>::min();
+        }
+        
+        endReached = false;
+
+        
+        if (!timeUp && depth == maxdepth)
+            cdepth = maxdepth;
+        
+        return std::numeric_limits<int>::max();
     }
     
     int minimaxAB(sptr<board>& b, int depth, int player, int useThresh, int passThresh)
@@ -1224,6 +1251,7 @@ class game
                 loop = false;
         }
     }
+
     
 public:
     game(): currentB(sptr<board>(new board())), bestM(NULL), tempBestM(NULL), maxdepth(0),
@@ -1238,6 +1266,7 @@ public:
             printGame();
     }
 };
+
 
 const int game::maxDepth = 20;
 
