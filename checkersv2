@@ -34,6 +34,7 @@ int nodesExpanded2 = 0;
 int player = 1;
 bool algoAB = 0;
 bool algoMiniMax = 0;
+int moves=0;
 
 class jump
 {
@@ -545,6 +546,7 @@ class board
                 it = mlist.begin();
             }
         }
+        moves++;
         makeMove(*it);
     }
     
@@ -935,7 +937,7 @@ class game
             }
         }
         assert(bestM != NULL);
-        
+        moves++;
         outputMessage();
     }
 
@@ -962,7 +964,7 @@ class game
                 time(&startTimeD);
                 maxdepth = i;
                 
-  minimaxAB(currentB, cdepth, player , std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
+  minimaxAB(currentB, cdepth, moves , std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
                 time(&endTimeD);
                 
                 if (difftime(endTimeD, startTimeD) >= ((board::timeLimit)/2))
@@ -982,7 +984,7 @@ class game
             }
         }
         assert(bestM != NULL);
-        
+        moves++;
         outputMessage();
     }
     
